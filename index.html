@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testeur de Couleurs de Pixels</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        .menu {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        input[type="color"] {
+            vertical-align: middle;
+            cursor: pointer;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        canvas {
+            border: 2px dashed #ccc;
+            background-color: white;
+            max-width: 100%;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="menu">
+        <label for="colorPicker">Tester une nouvelle couleur :</label>
+        <input type="color" id="colorPicker" value="#ff0000">
+        <button id="applyColor">Remplacer #464951</button>
+        <button id="resetImage" style="background-color: #6c757d;">Réinitialiser</button>
+    </div>
+
+    <br>
+    <!-- Le canvas où l'image va s'afficher et être modifiée -->
+    <canvas id="myCanvas">Ton navigateur ne supporte pas le canvas.</canvas>
+
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        
+        // La couleur cible #464951 convertie en RGB
+        // 46(hex) = 70, 49(hex) = 73, 51(hex) = 81
+        const targetR = parseInt('46', 16);
+        const targetG = parseInt('49', 16);
+        const targetB = parseInt('51', 16);
+
+        let originalImageData = null;
+
+        // Charger l'image photo.jpg
+        const img = new Image();
+        img.src = 'photo.jpg';
+
+        img.onload = function() {
+            // Ajuster la taille du canvas à l'image
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Dessiner l'image originale
+            ctx.drawImage(img, 0, 0);
+            
+            try {
+                // Sauvegarder les données des pixels originaux en mémoire
+                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            } catch (error) {
+                console.error("Erreur CORS bloquant la lecture des pixels :", error);
+                alert("Erreur de sécurité : Utilise Live Server pour tester ton code localement afin que getImageData() fonctionne.");
+            }
+        };
+
+        // Convertisseur de code hexadécimal vers RGB pour la couleur choisie
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        // Fonction pour appliquer le changement de couleur
+        document.getElementById('applyColor').addEventListener('click', function() {
+            if (!originalImageData) return;
+
+            const newColor = hexToRgb(colorPicker.value);
+            
+            // Cloner l'image originale pour ne pas la détruire (permet de tester plein de couleurs à la suite)
+            const imageData = new ImageData(
+                new Uint8ClampedArray(originalImageData.data),
+                originalImageData.width,
+                originalImageData.height
+            );
+            
+            const data = imageData.data;
+
+            // Parcourir tous les pixels (les données sont un tableau 1D : [R, G, B, Alpha, R, G, B, Alpha...])
+            for (let i = 0; i < data.length; i += 4) {
+                // Si le pixel correspond exactement à #464951 (70, 73, 81)
+                if (data[i] === targetR && data[i + 1] === targetG && data[i + 2] === targetB) {
+                    // On remplace ses valeurs par la nouvelle couleur du menu
+                    data[i]     = newColor.r;     // Rouge
+                    data[i + 1] = newColor.g;     // Vert
+                    data[i + 2] = newColor.b;     // Bleu
+                    // data[i + 3] est l'opacité (Alpha), on la laisse intacte
+                }
+            }
+
+            // Appliquer les nouveaux pixels sur le canvas
+            ctx.putImageData(imageData, 0, 0);
+        });
+
+        // Bouton pour réinitialiser
+        document.getElementById('resetImage').addEventListener('click', function() {
+            if (originalImageData) {
+                ctx.putImageData(originalImageData, 0, 0);
+            }
+        });
+    </script>
+</body>
+</html>
