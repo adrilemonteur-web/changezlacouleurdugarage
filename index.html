@@ -3,170 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testeur & Pipette de Couleurs</title>
+    <title>Éditeur de Pixels Pro | Studio</title>
     <style>
+        :root {
+            --bg-color: #f7f9fc;
+            --surface-color: #ffffff;
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --success: #10b981;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            text-align: center;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
         }
-        .menu {
-            background: white;
-            padding: 15px;
+
+        .sidebar {
+            width: 340px;
+            background: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 4px; }
+        .header p { font-size: 0.85rem; color: var(--text-muted); }
+
+        .control-group {
+            background: var(--bg-color);
+            padding: 16px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: inline-block;
-            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
+
+        .control-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus, select:focus { border-color: var(--primary-color); }
+
+        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; }
+
         input[type="color"] {
-            vertical-align: middle;
-            cursor: pointer;
-        }
-        button {
-            padding: 8px 15px;
-            background-color: #007bff;
-            color: white;
+            -webkit-appearance: none;
             border: none;
-            border-radius: 4px;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
             cursor: pointer;
-            margin-left: 10px;
-            font-weight: bold;
+            padding: 0;
+            overflow: hidden;
         }
-        .debug-info {
-            margin-top: 10px;
-            padding: 10px;
-            background: #e9ecef;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 16px;
+
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border-color); border-radius: 6px; }
+
+        button {
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        .btn-secondary { background-color: white; color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background-color: var(--bg-color); }
+
+        .btn-success { background-color: var(--success); color: white; margin-top: auto; }
+        .btn-success:hover { background-color: #059669; }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden; /* Cacher ce qui dépasse pour le zoom */
+        }
+
+        .canvas-wrapper {
+            flex: 1;
+            overflow: hidden; /* Important pour le zoom/pan */
+            position: relative;
+            cursor: grab;
+            background-color: #e2e8f0;
+            background-image: 
+                linear-gradient(45deg, #cbd5e1 25%, transparent 25%), 
+                linear-gradient(-45deg, #cbd5e1 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #cbd5e1 75%), 
+                linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        .canvas-wrapper:active { cursor: grabbing; }
+
         canvas {
-            border: 2px dashed #ccc;
-            background-color: white;
-            max-width: 100%;
-            border-radius: 4px;
-            cursor: crosshair; /* Curseur en forme de croix pour la pipette */
+            position: absolute;
+            transform-origin: 0 0; /* Zoom à partir d'en haut à gauche, on gèrera le pan en JS */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
+
+        /* Curseur spécial quand la touche Shift est enfoncée (mode pipette) */
+        .pipette-mode { cursor: crosshair !important; }
+
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #0f172a;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            z-index: 20;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 20;
+        }
+        
+        .zoom-btn {
+            padding: 5px 10px;
+            background: transparent;
+            color: var(--text-main);
+            border: none;
+        }
+        .zoom-btn:hover { background: var(--bg-color); }
     </style>
 </head>
 <body>
 
-    <div class="menu">
-        <label for="colorPicker">Tester une nouvelle couleur :</label>
-        <input type="color" id="colorPicker" value="#ff0000">
-        <!-- J'ai ajouté un champ pour que tu puisses modifier la couleur cible facilement -->
-        <label for="targetColor" style="margin-left: 15px;">Couleur à remplacer :</label>
-        <input type="text" id="targetColor" value="#444750" size="7">
+    <div class="sidebar">
+        <div class="header">
+            <h1>Éditeur de Pixels</h1>
+            <p>Remplacement chromatique avec zoom</p>
+        </div>
+
+        <div class="control-group">
+            <label>1. Couleur cible (Pipette)</label>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top:-8px;"><b>MAINTIENS SHIFT + CLIC</b> sur l'image pour utiliser la pipette</p>
+            <input type="text" id="targetColor" value="#444750">
+        </div>
+
+        <div class="control-group">
+            <label>2. Nouvelle couleur (Remplacement)</label>
+            
+            <div class="color-picker-wrapper">
+                <input type="color" id="colorPicker" value="#2563eb">
+                <input type="text" id="hexDisplay" value="#2563eb" readonly style="background: var(--bg-color); color: var(--text-muted);">
+            </div>
+
+            <label style="margin-top: 10px;">Catalogue complet RAL Classic :</label>
+            <select id="ralSelector">
+                <option value="">-- Choisir un RAL (213 couleurs) --</option>
+            </select>
+        </div>
+
+        <button id="applyColor" class="btn-primary">Appliquer le remplacement</button>
+        <button id="resetImage" class="btn-secondary">Réinitialiser l'image</button>
+        <button id="downloadBtn" class="btn-success">Télécharger (.png)</button>
+    </div>
+
+    <div class="main-content">
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="myCanvas"></canvas>
+        </div>
         
-        <button id="applyColor">Remplacer</button>
-        <button id="resetImage" style="background-color: #6c757d;">Réinitialiser</button>
-        
-        <div class="debug-info" id="debugText">
-            🔍 Mode Pipette actif : Clique n'importe où sur l'image pour voir son code couleur exact.
+        <div class="status-bar" id="statusText">
+            <span>🖱️ Clic+Glisser = Se déplacer</span>
+            <span>|</span>
+            <span>⌨️ Shift+Clic = Pipette</span>
+            <span>|</span>
+            <span>🔍 Molette = Zoom</span>
+        </div>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="zoomOutBtn">-</button>
+            <span style="display:flex; align-items:center; font-size:0.8rem; font-weight:bold; min-width: 40px; justify-content:center;" id="zoomLevelText">100%</span>
+            <button class="zoom-btn" id="zoomInBtn">+</button>
+            <button class="zoom-btn" id="zoomResetBtn" style="font-size:0.75rem;">Reset</button>
         </div>
     </div>
 
-    <br>
-    <canvas id="myCanvas">Ton navigateur ne supporte pas le canvas.</canvas>
-
     <script>
-        const canvas = document.getElementById('myCanvas');
-        const ctx = canvas.getContext('2d');
-        const colorPicker = document.getElementById('colorPicker');
-        const targetColorInput = document.getElementById('targetColor');
-        const debugText = document.getElementById('debugText');
-
-        let originalImageData = null;
-
-        const img = new Image();
-        img.src = 'photo.png';
-
-        img.onload = function() {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            
-            try {
-                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            } catch (error) {
-                console.error("Erreur CORS :", error);
-                debugText.innerHTML = "❌ <b>Erreur CORS !</b> Tu dois utiliser Live Server (VS Code) pour que ça marche.";
-                debugText.style.color = "red";
-            }
-        };
-
-        // --- OUTIL PIPETTE ---
-        // Permet de cliquer sur l'image pour obtenir la couleur exacte
-        canvas.addEventListener('click', function(event) {
-            if (!originalImageData) return;
-            
-            const rect = canvas.getBoundingClientRect();
-            // Calculer les coordonnées exactes du clic par rapport au canvas
-            const x = Math.floor((event.clientX - rect.left) * (canvas.width / rect.width));
-            const y = Math.floor((event.clientY - rect.top) * (canvas.height / rect.height));
-            
-            // Récupérer le pixel cliqué
-            const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const r = pixel[0];
-            const g = pixel[1];
-            const b = pixel[2];
-            
-            // Convertir en Hexadécimal
-            const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
-            
-            debugText.innerHTML = `Couleur cliquée : <b>${hex}</b> (R:${r}, G:${g}, B:${b})`;
-            
-            // Mettre à jour automatiquement le champ cible
-            targetColorInput.value = hex;
-        });
-
-        function hexToRgb(hex) {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
-        }
-
-        document.getElementById('applyColor').addEventListener('click', function() {
-            if (!originalImageData) return;
-
-            const newColor = hexToRgb(colorPicker.value);
-            const targetColorRgb = hexToRgb(targetColorInput.value);
-            
-            if (!targetColorRgb) {
-                alert("Code couleur cible invalide !");
-                return;
-            }
-
-            const imageData = new ImageData(
-                new Uint8ClampedArray(originalImageData.data),
-                originalImageData.width,
-                originalImageData.height
-            );
-            
-            const data = imageData.data;
-
-            let pixelsReplaces = 0;
-
-            for (let i = 0; i < data.length; i += 4) {
-                if (data[i] === targetColorRgb.r && data[i + 1] === targetColorRgb.g && data[i + 2] === targetColorRgb.b) {
-                    data[i]     = newColor.r;    
-                    data[i + 1] = newColor.g;     
-                    data[i + 2] = newColor.b;
-                    pixelsReplaces++;
-                }
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            debugText.innerHTML = `✅ ${pixelsReplaces} pixels remplacés !`;
-        });
-
-        document.getElementById('resetImage').addEventListener('click', function() {
-            if (originalImageData) {
-                ctx.putImageData(originalImageData, 0, 0);
-                debugText.innerHTML = "Image réinitialisée.";
-            }
-        });
-    </script>
-</body>
-</html>
+        // La base de données COMPLÈTE des couleurs RAL Classic
+        const ralColors = {
+            "RAL 1000 (Green beige)": "#CDBA88", "RAL 1001 (Beige)": "#D0B084", "RAL 1002 (Sand yellow)": "#D2AA6D", "RAL 1003 (Signal yellow)": "#F9A800", "RAL 1004 (Golden yellow)": "#E49E00", "RAL 1005 (Honey yellow)": "#CB8E00", "RAL 1006 (Maize yellow)": "#E29000", "RAL 1007 (Daffodil yellow)": "#E88C00", "RAL 1011 (Brown beige)": "#AF8A54", "RAL 1012 (Lemon yellow)": "#E3A72F", "RAL 1013 (Oyster white)": "#E3D9C6", "RAL 1014 (Ivory)": "#DFCEA1", "RAL 1015 (Light ivory)": "#E6D2B5", "RAL 1016 (Sulfur yellow)": "#EDEA00", "RAL 1017 (Saffron yellow)": "#F5D033", "RAL 1018 (Zinc yellow)": "#F8CB2E", "RAL 1019 (Grey beige)": "#A48F7A", "RAL 1020 (Olive yellow)": "#9A9464", "RAL 1021 (Rape yellow)": "#F3D03E", "RAL 1023 (Traffic yellow)": "#F6B600", "RAL 1024 (Ochre yellow)": "#BA9B62", "RAL 1026 (Luminous yellow)": "#FFFF00", "RAL 1027 (Curry)": "#A77F0E", "RAL 1028 (Melon yellow)": "#FF9B00", "RAL 1032 (Broom yellow)": "#E2A300", "RAL 1033 (Dahlia yellow)": "#F99A1C", "RAL 1034 (Pastel yellow)": "#EB9C52", "RAL 1035 (Pearl beige)": "#908370", "RAL 1036 (Pearl gold)": "#80643F", "RAL 1037 (Sun yellow)": "#F09200", 
+            "RAL 2000 (Yellow orange)": "#ED760E", "RAL 2001 (Red orange)": "#C93C20", "RAL 2002 (Vermilion)": "#CB2821", "RAL 2003 (Pastel orange)": "#FF7514", "RAL 2004 (Pure orange)": "#F44611", "RAL 2005 (Luminous orange)": "#FF2301", "RAL 2007 (Luminous bright orange)": "#FFA420", "RAL 2008 (Bright red orange)": "#F75E25", "RAL 2009 (Traffic orange)": "#F54021", "RAL 2010 (Signal orange)": "#D84B20", "RAL 2011 (Deep orange)": "#EC7C26", "RAL 2012 (Salmon orange)": "#E55137", "RAL 2013 (Pearl orange)": "#C35831", 
+            "RAL 3000 (Flame red)": "#AF2B1E", "RAL 3001 (Signal red)": "#A52019", "RAL 3002 (Carmine red)": "#A2231D", "RAL 3003 (Ruby red)": "#8D1D2C", "RAL 3004 (Purple red)": "#701F28", "RAL 3005 (Wine red)": "#5E2129", "RAL 3007 (Black red)": "#402225", "RAL 3009 (Oxide red)": "#703731", "RAL 3011 (Brown red)": "#7E2A2B", "RAL 3012 (Beige red)": "#CB8D73", "RAL 3013 (Tomato red)": "#9C322E", "RAL 3014 (Antique pink)": "#D47479", "RAL 3015 (Light pink)": "#E1A6AD", "RAL 3016 (Coral red)": "#AC4034", "RAL 3017 (Rose)": "#D3545F", "RAL 3018 (Strawberry red)": "#D14152", "RAL 3020 (Traffic red)": "#CC0605", "RAL 3022 (Salmon pink)": "#D95030", "RAL 3024 (Luminous red)": "#F80000", "RAL 3026 (Luminous bright red)": "#FE0000", "RAL 3027 (Raspberry red)": "#C51D34", "RAL 3028 (Pure red)": "#CB3234", "RAL 3031 (Orient red)": "#B32428", "RAL 3032 (Pearl ruby red)": "#721422", "RAL 3033 (Pearl pink)": "#B44C43", 
+            "RAL 4001 (Red lilac)": "#8A5A83", "RAL 4002 (Red violet)": "#922B3E", "RAL 4003 (Heather violet)": "#DE4C8A", "RAL 4004 (Claret violet)": "#641C34", "RAL 4005 (Blue lilac)": "#7A4B8A", "RAL 4006 (Traffic purple)": "#A03472", "RAL 4007 (Purple violet)": "#4A192C", "RAL 4008 (Signal violet)": "#924E7D", "RAL 4009 (Pastel violet)": "#A18594", "RAL 4010 (Telemagenta)": "#CF3476", "RAL 4011 (Pearl violet)": "#8673A1", "RAL 4012 (Pearl blackberry)": "#6C6874", 
+            "RAL 5000 (Violet blue)": "#354D73", "RAL 5001 (Green blue)": "#1F3438", "RAL 5002 (Ultramarine blue)": "#20214F", "RAL 5003 (Sapphire blue)": "#1D1E33", "RAL 5004 (Black blue)": "#18171C", "RAL 5005 (Signal blue)": "#1E2460", "RAL 5007 (Brilliant blue)": "#3E5F8A", "RAL 5008 (Grey blue)": "#26252D", "RAL 5009 (Azure blue)": "#025669", "RAL 5010 (Gentian blue)": "#0E294B", "RAL 5011 (Steel blue)": "#231A24", "RAL 5012 (Light blue)": "#3B83BD", "RAL 5013 (Cobalt blue)": "#1E213D", "RAL 5014 (Pigeon blue)": "#606E8C", "RAL 5015 (Sky blue)": "#2271B3", "RAL 5017 (Traffic blue)": "#063971", "RAL 5018 (Turquoise blue)": "#3F888F", "RAL 5019 (Capri blue)": "#1B5583", "RAL 5020 (Ocean blue)": "#1D334A", "RAL 5021 (Water blue)": "#256D7B", "RAL 5022 (Night blue)": "#252850", "RAL 5023 (Distant blue)": "#49678D", "RAL 5024 (Pastel blue)": "#5D9B9B", "RAL 5025 (Pearl gentian blue)": "#2A6478", "RAL 5026 (Pearl night blue)": "#102C54", 
+            "RAL 6000 (Patina green)": "#316650", "RAL 6001 (Emerald green)": "#287233", "RAL 6002 (Leaf green)": "#2D572C", "RAL 6003 (Olive green)": "#424632", "RAL 6004 (Blue green)": "#1F3A3D", "RAL 6005 (Moss green)": "#0F4C3A", "RAL 6006 (Grey olive)": "#313530", "RAL 6007 (Bottle green)": "#212121", "RAL 6008 (Brown green)": "#302D2A", "RAL 6009 (Fir green)": "#243124", "RAL 6010 (Grass green)": "#436E35", "RAL 6011 (Reseda green)": "#68825B", "RAL 6012 (Black green)": "#2B3A36", "RAL 6013 (Reed green)": "#797C5A", "RAL 6014 (Yellow olive)": "#444337", "RAL 6015 (Black olive)": "#383B34", "RAL 6016 (Turquoise green)": "#006F4D", "RAL 6017 (May green)": "#4B7D46", "RAL 6018 (Yellow green)": "#57A639", "RAL 6019 (Pastel green)": "#B7D9B1", "RAL 6020 (Chrome green)": "#354230", "RAL 6021 (Pale green)": "#89AC76", "RAL 6022 (Olive drab)": "#25221B", "RAL 6024 (Traffic gr
