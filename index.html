@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testeur de Couleurs de Pixels</title>
+    <title>Testeur de Couleurs avec Tolérance</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -50,7 +50,7 @@
     <div class="menu">
         <label for="colorPicker">Tester une nouvelle couleur :</label>
         <input type="color" id="colorPicker" value="#ff0000">
-        <button id="applyColor">Remplacer #464951</button>
+        <button id="applyColor">Remplacer (Tolérance 49 à 53)</button>
         <button id="resetImage" style="background-color: #6c757d;">Réinitialiser</button>
     </div>
 
@@ -62,13 +62,16 @@
         const ctx = canvas.getContext('2d');
         const colorPicker = document.getElementById('colorPicker');
         
-        const targetR = parseInt('46', 16);
-        const targetG = parseInt('49', 16);
-        const targetB = parseInt('51', 16);
+        // Les valeurs constantes pour le Rouge et le Vert
+        const targetR = parseInt('46', 16); // 70
+        const targetG = parseInt('49', 16); // 73
+        
+        // La plage de tolérance pour le Bleu (de 49 à 53 en hexa)
+        const targetB_min = parseInt('49', 16); // 73
+        const targetB_max = parseInt('53', 16); // 83
 
         let originalImageData = null;
 
-        // Remplacement du fichier par le format PNG
         const img = new Image();
         img.src = 'photo.png';
 
@@ -82,7 +85,7 @@
                 originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             } catch (error) {
                 console.error("Erreur CORS bloquant la lecture des pixels :", error);
-                alert("Erreur de sécurité : Utilise Live Server pour tester ton code localement afin que getImageData() fonctionne.");
+                alert("Erreur de sécurité : Utilise Live Server.");
             }
         };
 
@@ -108,8 +111,14 @@
             
             const data = imageData.data;
 
+            // Parcourir tous les pixels
             for (let i = 0; i < data.length; i += 4) {
-                if (data[i] === targetR && data[i + 1] === targetG && data[i + 2] === targetB) {
+                // Vérifier la tolérance : R et G exacts, et B compris entre min et max
+                if (data[i] === targetR && 
+                    data[i + 1] === targetG && 
+                    data[i + 2] >= targetB_min && 
+                    data[i + 2] <= targetB_max) {
+                    
                     data[i]     = newColor.r;    
                     data[i + 1] = newColor.g;     
                     data[i + 2] = newColor.b;     
