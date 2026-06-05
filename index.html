@@ -299,4 +299,138 @@
             const scaleY = wrapper.clientHeight / canvas.height;
             
             // On prend le plus petit ratio pour que tout rentre, limité à 1 (pas de zoom grossissant)
-            scale = Math.min(1, scaleX, scaleY) * 0.90; 
+            scale = Math.min(1, scaleX, scaleY) * 0.90; // 90% pour laisser une marge jolie autour
+            
+            // On centre
+            panX = (wrapper.clientWidth - (canvas.width * scale)) / 2;
+            panY = (wrapper.clientHeight - (canvas.height * scale)) / 2;
+            
+            updateCanvasTransform();
+        }
+
+        function updateCanvasTransform() {
+            canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            zoomLevelText.innerText = Math.round(scale * 100) + '%';
+        }
+
+        // ================= ZOOM & PAN LOGIC =================
+        wrapper.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomAmount = 0.1;
+            const delta = e.deltaY > 0 ? -1 : 1;
+            
+            const rect = wrapper.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const oldScale = scale;
+            scale = Math.max(0.05, Math.min(15, scale + (delta * zoomAmount * scale))); // Zoom plus fluide
+
+            panX = mouseX - (mouseX - panX) * (scale / oldScale);
+            panY = mouseY - (mouseY - panY) * (scale / oldScale);
+            
+            updateCanvasTransform();
+        });
+
+        document.getElementById('zoomInBtn').addEventListener('click', () => { scale = Math.min(15, scale * 1.2); updateCanvasTransform(); });
+        document.getElementById('zoomOutBtn').addEventListener('click', () => { scale = Math.max(0.05, scale / 1.2); updateCanvasTransform(); });
+        
+        // Le bouton reset utilise maintenant la fonction fitToScreen
+        document.getElementById('zoomResetBtn').addEventListener('click', fitToScreen);
+
+        wrapper.addEventListener('mousedown', (e) => {
+            if (e.shiftKey) return;
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateCanvasTransform();
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        document.addEventListener('keydown', (e) => { if (e.key === "Shift") wrapper.classList.add('pipette-mode'); });
+        document.addEventListener('keyup', (e) => { if (e.key === "Shift") wrapper.classList.remove('pipette-mode'); });
+
+        // ================= PIPETTE & COLOR =================
+        wrapper.addEventListener('click', function(event) {
+            if (!originalImageData || !event.shiftKey) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            
+            // Calcul précis des coordonnées avec le zoom et le pan
+            // On soustrait le panX/Y et on divise par le scale
+            const x = Math.floor((event.clientX - rect.left - panX) / scale);
+            const y = Math.floor((event.clientY - rect.top - panY) / scale);
+            
+            if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                const hex = "#" + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1).toUpperCase();
+                targetColorInput.value = hex;
+            }
+        });
+
+        colorPicker.addEventListener('input', function() {
+            hexDisplay.value = this.value.toUpperCase();
+            ralSelector.value = "";
+        });
+
+        ralSelector.addEventListener('change', function() {
+            if (this.value) {
+                colorPicker.value = this.value;
+                hexDisplay.value = this.value;
+            }
+        });
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+        }
+
+        document.getElementById('applyColor').addEventListener('click', function() {
+            if (!originalImageData) return;
+
+            const newColor = hexToRgb(colorPicker.value);
+            const targetColorRgb = hexToRgb(targetColorInput.value);
+            
+            if (!targetColorRgb) return;
+
+            const imageData = new ImageData(
+                new Uint8ClampedArray(originalImageData.data),
+                originalImageData.width,
+                originalImageData.height
+            );
+            
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i] === targetColorRgb.r && data[i + 1] === targetColorRgb.g && data[i + 2] === targetColorRgb.b) {
+                    data[i]     = newColor.r;    
+                    data[i + 1] = newColor.g;     
+                    data[i + 2] = newColor.b;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        });
+
+        document.getElementById('resetImage').addEventListener('click', function() {
+            if (originalImageData) {
+                ctx.putImageData(originalImageData, 0, 0);
+            }
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            const link = document.createElement('a');
+            link.download = 'photo_modifiee.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+</body>
+</html>
