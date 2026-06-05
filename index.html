@@ -317,10 +317,10 @@
 
         // On s'assure d'utiliser les noms exacts
         img.src = 'photo2.jpg';
-        texture.src = 'Visuel_2D-2-2.jpg';
+        texture.src = 'texture.jpg';
 
         img.onerror = () => alert("Erreur : Impossible de charger 'photo2.jpg'. Vérifie que le fichier est dans le même dossier.");
-        texture.onerror = () => alert("Erreur : Impossible de charger 'Visuel_2D-2-2.jpg'. Vérifie que le fichier est dans le même dossier.");
+        texture.onerror = () => alert("Erreur : Impossible de charger 'texture.jpg'. Vérifie que le fichier est dans le même dossier.");
 
         function checkLoad() {
             imagesLoaded++;
