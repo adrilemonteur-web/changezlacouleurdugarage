@@ -154,4 +154,88 @@
 
         const garage2 = [
             {x: 1224, y: 664}, {x: 1888, y: 668}, 
-            {x: 1895, y: 
+            {x: 1895, y: 1015}, {x: 1224, y: 1027}
+        ];
+
+        img.src = 'photo2.jpg';
+        texture.src = 'texture.jpg'; 
+
+        function checkLoad() {
+            imagesLoaded++;
+            // Quand les 2 images sont chargées, on affiche et on lance la première simulation avec la couleur par défaut
+            if (imagesLoaded === 2) {
+                drawOriginal();
+                applySimulation();
+            }
+        }
+
+        img.onload = checkLoad;
+        texture.onload = checkLoad;
+
+        function drawOriginal() {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+        }
+
+        ralSelector.addEventListener('change', function() {
+            if (this.value) colorPicker.value = this.value;
+            applySimulation();
+        });
+        
+        colorPicker.addEventListener('change', applySimulation);
+
+        function createMask(points) {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[1].x, points[1].y);
+            ctx.lineTo(points[2].x, points[2].y);
+            ctx.lineTo(points[3].x, points[3].y);
+            ctx.closePath();
+        }
+
+        function applySimulation() {
+            if (imagesLoaded < 2) return;
+            
+            drawOriginal();
+            const color = colorPicker.value;
+            
+            function applyToDoor(points) {
+                ctx.save();
+                
+                createMask(points);
+                ctx.clip();
+                
+                const minX = Math.min(points[0].x, points[3].x);
+                const minY = Math.min(points[0].y, points[1].y);
+                const maxX = Math.max(points[1].x, points[2].x);
+                const maxY = Math.max(points[2].y, points[3].y);
+                const width = maxX - minX;
+                const height = maxY - minY;
+                
+                // Base RAL pure
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                // Texture d'ombrage (Multiply)
+                ctx.globalCompositeOperation = 'multiply';
+                ctx.drawImage(texture, minX, minY, width, height);
+                
+                // Rehausse de la couleur (Intensité bloquée à 28% = 0.28)
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.28; 
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            applyToDoor(garage1);
+            applyToDoor(garage2);
+        }
+
+        document.getElementById('applyBtn').addEventListener('click', applySimulation);
+        document.getElementById('resetBtn').addEventListener('click', drawOriginal);
+    </script>
+</body>
+</html>
