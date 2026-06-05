@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testeur de Couleurs de Pixels</title>
+    <title>Testeur & Pipette de Couleurs</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -34,14 +34,20 @@
             margin-left: 10px;
             font-weight: bold;
         }
-        button:hover {
-            background-color: #0056b3;
+        .debug-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 16px;
         }
         canvas {
             border: 2px dashed #ccc;
             background-color: white;
             max-width: 100%;
             border-radius: 4px;
+            cursor: crosshair; /* Curseur en forme de croix pour la pipette */
         }
     </style>
 </head>
@@ -50,8 +56,16 @@
     <div class="menu">
         <label for="colorPicker">Tester une nouvelle couleur :</label>
         <input type="color" id="colorPicker" value="#ff0000">
-        <button id="applyColor">Remplacer #444750</button>
+        <!-- J'ai ajouté un champ pour que tu puisses modifier la couleur cible facilement -->
+        <label for="targetColor" style="margin-left: 15px;">Couleur à remplacer :</label>
+        <input type="text" id="targetColor" value="#444750" size="7">
+        
+        <button id="applyColor">Remplacer</button>
         <button id="resetImage" style="background-color: #6c757d;">Réinitialiser</button>
+        
+        <div class="debug-info" id="debugText">
+            🔍 Mode Pipette actif : Clique n'importe où sur l'image pour voir son code couleur exact.
+        </div>
     </div>
 
     <br>
@@ -61,11 +75,8 @@
         const canvas = document.getElementById('myCanvas');
         const ctx = canvas.getContext('2d');
         const colorPicker = document.getElementById('colorPicker');
-        
-        // La nouvelle couleur cible : #444750
-        const targetR = parseInt('44', 16); // 68
-        const targetG = parseInt('47', 16); // 71
-        const targetB = parseInt('50', 16); // 80
+        const targetColorInput = document.getElementById('targetColor');
+        const debugText = document.getElementById('debugText');
 
         let originalImageData = null;
 
@@ -75,31 +86,58 @@
         img.onload = function() {
             canvas.width = img.width;
             canvas.height = img.height;
-            
             ctx.drawImage(img, 0, 0);
             
             try {
                 originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             } catch (error) {
-                console.error("Erreur CORS bloquant la lecture des pixels :", error);
-                alert("Erreur de sécurité : Utilise Live Server pour tester ton code localement.");
+                console.error("Erreur CORS :", error);
+                debugText.innerHTML = "❌ <b>Erreur CORS !</b> Tu dois utiliser Live Server (VS Code) pour que ça marche.";
+                debugText.style.color = "red";
             }
         };
 
+        // --- OUTIL PIPETTE ---
+        // Permet de cliquer sur l'image pour obtenir la couleur exacte
+        canvas.addEventListener('click', function(event) {
+            if (!originalImageData) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            // Calculer les coordonnées exactes du clic par rapport au canvas
+            const x = Math.floor((event.clientX - rect.left) * (canvas.width / rect.width));
+            const y = Math.floor((event.clientY - rect.top) * (canvas.height / rect.height));
+            
+            // Récupérer le pixel cliqué
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const r = pixel[0];
+            const g = pixel[1];
+            const b = pixel[2];
+            
+            // Convertir en Hexadécimal
+            const hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+            
+            debugText.innerHTML = `Couleur cliquée : <b>${hex}</b> (R:${r}, G:${g}, B:${b})`;
+            
+            // Mettre à jour automatiquement le champ cible
+            targetColorInput.value = hex;
+        });
+
         function hexToRgb(hex) {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16)
-            } : null;
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
         }
 
         document.getElementById('applyColor').addEventListener('click', function() {
             if (!originalImageData) return;
 
             const newColor = hexToRgb(colorPicker.value);
+            const targetColorRgb = hexToRgb(targetColorInput.value);
             
+            if (!targetColorRgb) {
+                alert("Code couleur cible invalide !");
+                return;
+            }
+
             const imageData = new ImageData(
                 new Uint8ClampedArray(originalImageData.data),
                 originalImageData.width,
@@ -108,22 +146,25 @@
             
             const data = imageData.data;
 
-            // Parcourir tous les pixels
+            let pixelsReplaces = 0;
+
             for (let i = 0; i < data.length; i += 4) {
-                // Correspondance stricte pour la couleur #444750
-                if (data[i] === targetR && data[i + 1] === targetG && data[i + 2] === targetB) {
+                if (data[i] === targetColorRgb.r && data[i + 1] === targetColorRgb.g && data[i + 2] === targetColorRgb.b) {
                     data[i]     = newColor.r;    
                     data[i + 1] = newColor.g;     
-                    data[i + 2] = newColor.b;     
+                    data[i + 2] = newColor.b;
+                    pixelsReplaces++;
                 }
             }
 
             ctx.putImageData(imageData, 0, 0);
+            debugText.innerHTML = `✅ ${pixelsReplaces} pixels remplacés !`;
         });
 
         document.getElementById('resetImage').addEventListener('click', function() {
             if (originalImageData) {
                 ctx.putImageData(originalImageData, 0, 0);
+                debugText.innerHTML = "Image réinitialisée.";
             }
         });
     </script>
