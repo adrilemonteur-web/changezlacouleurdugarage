@@ -3,27 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éditeur de Pixels Pro | Studio</title>
+    <title>Simulateur 3D - Portes de Garage</title>
     <style>
         :root {
             --bg-color: #f7f9fc;
             --surface-color: #ffffff;
             --primary-color: #2563eb;
-            --primary-hover: #1d4ed8;
             --text-main: #1e293b;
-            --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --success: #10b981;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
             height: 100vh;
+            margin: 0;
             overflow: hidden;
         }
 
@@ -36,12 +32,27 @@
             flex-direction: column;
             gap: 20px;
             box-shadow: 2px 0 10px rgba(0,0,0,0.02);
-            overflow-y: auto;
             z-index: 10;
         }
 
-        .header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 4px; }
-        .header p { font-size: 0.85rem; color: var(--text-muted); }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: auto;
+            align-items: center;
+            background-color: #e2e8f0;
+            padding: 20px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            background: white;
+            border-radius: 4px;
+        }
 
         .control-group {
             background: var(--bg-color);
@@ -53,384 +64,176 @@
             gap: 12px;
         }
 
-        .control-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
-
-        input[type="text"], select {
+        select, input[type="color"], input[type="range"] {
             width: 100%;
-            padding: 8px 12px;
+            padding: 8px;
+            border-radius: 6px;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: border-color 0.2s;
         }
-
-        input[type="text"]:focus, select:focus { border-color: var(--primary-color); }
-
-        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; }
-
-        input[type="color"] {
-            -webkit-appearance: none;
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
-            cursor: pointer;
-            padding: 0;
-            overflow: hidden;
-        }
-
-        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-        input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border-color); border-radius: 6px; }
 
         button {
-            padding: 10px 16px;
-            font-size: 0.9rem;
-            font-weight: 600;
+            padding: 10px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
             border-radius: 6px;
-            border: none;
             cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            font-weight: bold;
         }
-
-        .btn-primary { background-color: var(--primary-color); color: white; }
-        .btn-primary:hover { background-color: var(--primary-hover); }
-
-        .btn-secondary { background-color: white; color: var(--text-main); border: 1px solid var(--border-color); }
-        .btn-secondary:hover { background-color: var(--bg-color); }
-
-        .btn-success { background-color: var(--success); color: white; margin-top: auto; }
-        .btn-success:hover { background-color: #059669; }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .canvas-wrapper {
-            flex: 1;
-            overflow: hidden;
-            position: relative;
-            cursor: grab;
-            background-color: #e2e8f0;
-            background-image: 
-                linear-gradient(45deg, #cbd5e1 25%, transparent 25%), 
-                linear-gradient(-45deg, #cbd5e1 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #cbd5e1 75%), 
-                linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }
-
-        .canvas-wrapper:active { cursor: grabbing; }
-
-        canvas {
-            position: absolute;
-            transform-origin: 0 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-
-        .pipette-mode { cursor: crosshair !important; }
-
-        .status-bar {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.95);
-            color: #0f172a;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: 1px solid var(--border-color);
-            z-index: 20;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .zoom-controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            gap: 5px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 5px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            z-index: 20;
-        }
+        button:hover { background: #1d4ed8; }
         
-        .zoom-btn {
-            padding: 5px 10px;
-            background: transparent;
-            color: var(--text-main);
-            border: none;
-            cursor: pointer;
-        }
-        .zoom-btn:hover { background: var(--bg-color); }
+        .status { font-size: 0.85rem; color: #64748b; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <div class="header">
-            <h1>Éditeur de Pixels</h1>
-            <p>Remplacement chromatique avec zoom</p>
-        </div>
+        <h2>Simulateur Garage</h2>
+        <p class="status">Plaquage de texture + couleur</p>
 
         <div class="control-group">
-            <label>1. Couleur cible (Pipette)</label>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top:-8px;"><b>MAINTIENS SHIFT + CLIC</b> sur l'image pour utiliser la pipette</p>
-            <input type="text" id="targetColor" value="#444750">
-        </div>
-
-        <div class="control-group">
-            <label>2. Nouvelle couleur (Remplacement)</label>
-            
-            <div class="color-picker-wrapper">
-                <input type="color" id="colorPicker" value="#2563eb">
-                <input type="text" id="hexDisplay" value="#2563eb" readonly style="background: var(--bg-color); color: var(--text-muted);">
-            </div>
-
-            <label style="margin-top: 10px;">Catalogue complet RAL Classic :</label>
+            <label>1. Choisir une couleur RAL</label>
             <select id="ralSelector">
-                <option value="">-- Choisir un RAL (213 couleurs) --</option>
+                <option value="#373F43">RAL 7016 (Gris anthracite)</option>
+                <option value="#D7D7D7">RAL 7035 (Gris clair)</option>
+                <option value="#F1ECE1">RAL 9010 (Blanc pur)</option>
+                <option value="#20214F">RAL 5002 (Bleu outremer)</option>
+                <option value="#AF2B1E">RAL 3000 (Rouge feu)</option>
+                <option value="#45322E">RAL 8017 (Brun chocolat)</option>
+                <option value="#57A639">RAL 6018 (Vert jaune)</option>
             </select>
+            
+            <label>Ou couleur personnalisée :</label>
+            <input type="color" id="colorPicker" value="#373F43">
         </div>
 
-        <button id="applyColor" class="btn-primary">Appliquer le remplacement</button>
-        <button id="resetImage" class="btn-secondary">Réinitialiser l'image</button>
-        <button id="downloadBtn" class="btn-success">Télécharger (.png)</button>
+        <div class="control-group">
+            <label>2. Intensité de la couleur</label>
+            <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
+        </div>
+
+        <button id="applyBtn">Appliquer la simulation</button>
+        <button id="resetBtn" style="background:#64748b;">Réinitialiser la photo</button>
+        
     </div>
 
     <div class="main-content">
-        <div class="canvas-wrapper" id="canvasWrapper">
-            <canvas id="myCanvas"></canvas>
-        </div>
-        
-        <div class="status-bar" id="statusText">
-            Chargement de l'image en cours...
-        </div>
-
-        <div class="zoom-controls">
-            <button class="zoom-btn" id="zoomOutBtn">-</button>
-            <span style="display:flex; align-items:center; font-size:0.8rem; font-weight:bold; min-width: 40px; justify-content:center;" id="zoomLevelText">100%</span>
-            <button class="zoom-btn" id="zoomInBtn">+</button>
-            <button class="zoom-btn" id="zoomResetBtn" style="font-size:0.75rem;">Reset</button>
-        </div>
+        <canvas id="myCanvas"></canvas>
     </div>
 
     <script>
-        // La base de données COMPLÈTE des couleurs RAL Classic
-        const ralColors = {
-            "RAL 1000 (Green beige)": "#CDBA88", "RAL 1001 (Beige)": "#D0B084", "RAL 1002 (Sand yellow)": "#D2AA6D", "RAL 1003 (Signal yellow)": "#F9A800", "RAL 1004 (Golden yellow)": "#E49E00", "RAL 1005 (Honey yellow)": "#CB8E00", "RAL 1006 (Maize yellow)": "#E29000", "RAL 1007 (Daffodil yellow)": "#E88C00", "RAL 1011 (Brown beige)": "#AF8A54", "RAL 1012 (Lemon yellow)": "#E3A72F", "RAL 1013 (Oyster white)": "#E3D9C6", "RAL 1014 (Ivory)": "#DFCEA1", "RAL 1015 (Light ivory)": "#E6D2B5", "RAL 1016 (Sulfur yellow)": "#EDEA00", "RAL 1017 (Saffron yellow)": "#F5D033", "RAL 1018 (Zinc yellow)": "#F8CB2E", "RAL 1019 (Grey beige)": "#A48F7A", "RAL 1020 (Olive yellow)": "#9A9464", "RAL 1021 (Rape yellow)": "#F3D03E", "RAL 1023 (Traffic yellow)": "#F6B600", "RAL 1024 (Ochre yellow)": "#BA9B62", "RAL 1026 (Luminous yellow)": "#FFFF00", "RAL 1027 (Curry)": "#A77F0E", "RAL 1028 (Melon yellow)": "#FF9B00", "RAL 1032 (Broom yellow)": "#E2A300", "RAL 1033 (Dahlia yellow)": "#F99A1C", "RAL 1034 (Pastel yellow)": "#EB9C52", "RAL 1035 (Pearl beige)": "#908370", "RAL 1036 (Pearl gold)": "#80643F", "RAL 1037 (Sun yellow)": "#F09200", 
-            "RAL 2000 (Yellow orange)": "#ED760E", "RAL 2001 (Red orange)": "#C93C20", "RAL 2002 (Vermilion)": "#CB2821", "RAL 2003 (Pastel orange)": "#FF7514", "RAL 2004 (Pure orange)": "#F44611", "RAL 2005 (Luminous orange)": "#FF2301", "RAL 2007 (Luminous bright orange)": "#FFA420", "RAL 2008 (Bright red orange)": "#F75E25", "RAL 2009 (Traffic orange)": "#F54021", "RAL 2010 (Signal orange)": "#D84B20", "RAL 2011 (Deep orange)": "#EC7C26", "RAL 2012 (Salmon orange)": "#E55137", "RAL 2013 (Pearl orange)": "#C35831", 
-            "RAL 3000 (Flame red)": "#AF2B1E", "RAL 3001 (Signal red)": "#A52019", "RAL 3002 (Carmine red)": "#A2231D", "RAL 3003 (Ruby red)": "#8D1D2C", "RAL 3004 (Purple red)": "#701F28", "RAL 3005 (Wine red)": "#5E2129", "RAL 3007 (Black red)": "#402225", "RAL 3009 (Oxide red)": "#703731", "RAL 3011 (Brown red)": "#7E2A2B", "RAL 3012 (Beige red)": "#CB8D73", "RAL 3013 (Tomato red)": "#9C322E", "RAL 3014 (Antique pink)": "#D47479", "RAL 3015 (Light pink)": "#E1A6AD", "RAL 3016 (Coral red)": "#AC4034", "RAL 3017 (Rose)": "#D3545F", "RAL 3018 (Strawberry red)": "#D14152", "RAL 3020 (Traffic red)": "#CC0605", "RAL 3022 (Salmon pink)": "#D95030", "RAL 3024 (Luminous red)": "#F80000", "RAL 3026 (Luminous bright red)": "#FE0000", "RAL 3027 (Raspberry red)": "#C51D34", "RAL 3028 (Pure red)": "#CB3234", "RAL 3031 (Orient red)": "#B32428", "RAL 3032 (Pearl ruby red)": "#721422", "RAL 3033 (Pearl pink)": "#B44C43", 
-            "RAL 4001 (Red lilac)": "#8A5A83", "RAL 4002 (Red violet)": "#922B3E", "RAL 4003 (Heather violet)": "#DE4C8A", "RAL 4004 (Claret violet)": "#641C34", "RAL 4005 (Blue lilac)": "#7A4B8A", "RAL 4006 (Traffic purple)": "#A03472", "RAL 4007 (Purple violet)": "#4A192C", "RAL 4008 (Signal violet)": "#924E7D", "RAL 4009 (Pastel violet)": "#A18594", "RAL 4010 (Telemagenta)": "#CF3476", "RAL 4011 (Pearl violet)": "#8673A1", "RAL 4012 (Pearl blackberry)": "#6C6874", 
-            "RAL 5000 (Violet blue)": "#354D73", "RAL 5001 (Green blue)": "#1F3438", "RAL 5002 (Ultramarine blue)": "#20214F", "RAL 5003 (Sapphire blue)": "#1D1E33", "RAL 5004 (Black blue)": "#18171C", "RAL 5005 (Signal blue)": "#1E2460", "RAL 5007 (Brilliant blue)": "#3E5F8A", "RAL 5008 (Grey blue)": "#26252D", "RAL 5009 (Azure blue)": "#025669", "RAL 5010 (Gentian blue)": "#0E294B", "RAL 5011 (Steel blue)": "#231A24", "RAL 5012 (Light blue)": "#3B83BD", "RAL 5013 (Cobalt blue)": "#1E213D", "RAL 5014 (Pigeon blue)": "#606E8C", "RAL 5015 (Sky blue)": "#2271B3", "RAL 5017 (Traffic blue)": "#063971", "RAL 5018 (Turquoise blue)": "#3F888F", "RAL 5019 (Capri blue)": "#1B5583", "RAL 5020 (Ocean blue)": "#1D334A", "RAL 5021 (Water blue)": "#256D7B", "RAL 5022 (Night blue)": "#252850", "RAL 5023 (Distant blue)": "#49678D", "RAL 5024 (Pastel blue)": "#5D9B9B", "RAL 5025 (Pearl gentian blue)": "#2A6478", "RAL 5026 (Pearl night blue)": "#102C54", 
-            "RAL 6000 (Patina green)": "#316650", "RAL 6001 (Emerald green)": "#287233", "RAL 6002 (Leaf green)": "#2D572C", "RAL 6003 (Olive green)": "#424632", "RAL 6004 (Blue green)": "#1F3A3D", "RAL 6005 (Moss green)": "#0F4C3A", "RAL 6006 (Grey olive)": "#313530", "RAL 6007 (Bottle green)": "#212121", "RAL 6008 (Brown green)": "#302D2A", "RAL 6009 (Fir green)": "#243124", "RAL 6010 (Grass green)": "#436E35", "RAL 6011 (Reseda green)": "#68825B", "RAL 6012 (Black green)": "#2B3A36", "RAL 6013 (Reed green)": "#797C5A", "RAL 6014 (Yellow olive)": "#444337", "RAL 6015 (Black olive)": "#383B34", "RAL 6016 (Turquoise green)": "#006F4D", "RAL 6017 (May green)": "#4B7D46", "RAL 6018 (Yellow green)": "#57A639", "RAL 6019 (Pastel green)": "#B7D9B1", "RAL 6020 (Chrome green)": "#354230", "RAL 6021 (Pale green)": "#89AC76", "RAL 6022 (Olive drab)": "#25221B", "RAL 6024 (Traffic green)": "#008754", "RAL 6025 (Fern green)": "#53753C", "RAL 6026 (Opal green)": "#015D52", "RAL 6027 (Light green)": "#84C3BE", "RAL 6028 (Pine green)": "#2C5545", "RAL 6029 (Mint green)": "#20603D", "RAL 6032 (Signal green)": "#0F8558", "RAL 6033 (Mint turquoise)": "#478A84", "RAL 6034 (Pastel turquoise)": "#7FB0B2", "RAL 6035 (Pearl green)": "#1B542C", "RAL 6036 (Pearl opal green)": "#005D4C", "RAL 6037 (Pure green)": "#25E712", "RAL 6038 (Luminous green)": "#00F700", 
-            "RAL 7000 (Squirrel grey)": "#7E8B92", "RAL 7001 (Silver grey)": "#8F999F", "RAL 7002 (Olive grey)": "#817F68", "RAL 7003 (Moss grey)": "#7A7B6D", "RAL 7004 (Signal grey)": "#9EA0A1", "RAL 7005 (Mouse grey)": "#6B716F", "RAL 7006 (Beige grey)": "#756F61", "RAL 7008 (Khaki grey)": "#746643", "RAL 7009 (Green grey)": "#5B6259", "RAL 7010 (Tarpaulin grey)": "#575D57", "RAL 7011 (Iron grey)": "#555D61", "RAL 7012 (Basalt grey)": "#596163", "RAL 7013 (Brown grey)": "#555548", "RAL 7015 (Slate grey)": "#51565C", "RAL 7016 (Anthracite grey)": "#373F43", "RAL 7021 (Black grey)": "#2F3234", "RAL 7022 (Umbra grey)": "#4C4A44", "RAL 7023 (Concrete grey)": "#82827A", "RAL 7024 (Graphite grey)": "#46494C", "RAL 7026 (Granite grey)": "#2F353B", "RAL 7030 (Stone grey)": "#929288", "RAL 7031 (Blue grey)": "#5D686D", "RAL 7032 (Pebble grey)": "#B8B799", "RAL 7033 (Cement grey)": "#818475", "RAL 7034 (Yellow grey)": "#939176", "RAL 7035 (Light grey)": "#D7D7D7", "RAL 7036 (Platinum grey)": "#9A9697", "RAL 7037 (Dusty grey)": "#7C7F7E", "RAL 7038 (Agate grey)": "#B5B8B1", "RAL 7039 (Quartz grey)": "#6A695E", "RAL 7040 (Window grey)": "#9DA1AA", "RAL 7042 (Traffic grey A)": "#8D948D", "RAL 7043 (Traffic grey B)": "#4E5452", "RAL 7044 (Silk grey)": "#CAC4B0", "RAL 7045 (Telegrey 1)": "#909090", "RAL 7046 (Telegrey 2)": "#82898F", "RAL 7047 (Telegrey 4)": "#D0D0D0", "RAL 7048 (Pearl mouse grey)": "#898176", 
-            "RAL 8000 (Green brown)": "#826C34", "RAL 8001 (Ochre brown)": "#955F20", "RAL 8002 (Signal brown)": "#6C3B2A", "RAL 8003 (Clay brown)": "#734222", "RAL 8004 (Copper brown)": "#8E402A", "RAL 8007 (Fawn brown)": "#59351F", "RAL 8008 (Olive brown)": "#6F4F28", "RAL 8011 (Nut brown)": "#5B3A29", "RAL 8012 (Red brown)": "#592321", "RAL 8014 (Sepia brown)": "#382C1E", "RAL 8015 (Chestnut brown)": "#633A34", "RAL 8016 (Mahogany brown)": "#4C2F27", "RAL 8017 (Chocolate brown)": "#45322E", "RAL 8019 (Grey brown)": "#403A3A", "RAL 8022 (Black brown)": "#211F20", "RAL 8023 (Orange brown)": "#A65E2E", "RAL 8024 (Beige brown)": "#79553D", "RAL 8025 (Pale brown)": "#755C48", "RAL 8028 (Terra brown)": "#4E3B31", "RAL 8029 (Pearl copper)": "#763C28", 
-            "RAL 9001 (Cream)": "#EAE6CA", "RAL 9002 (Grey white)": "#E7EBDA", "RAL 9003 (Signal white)": "#F4F4F4", "RAL 9004 (Signal black)": "#282828", "RAL 9005 (Jet black)": "#0A0A0A", "RAL 9006 (White aluminium)": "#A5A5A5", "RAL 9007 (Grey aluminium)": "#8F8F8F", "RAL 9010 (Pure white)": "#F1ECE1", "RAL 9011 (Graphite black)": "#1C1C1C", "RAL 9016 (Traffic white)": "#F6F6F6", "RAL 9017 (Traffic black)": "#1E1E1E", "RAL 9018 (Papyrus white)": "#D7D7D7", "RAL 9022 (Pearl light grey)": "#9C9C9C", "RAL 9023 (Pearl dark grey)": "#828282"
-        };
-
         const canvas = document.getElementById('myCanvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        const wrapper = document.getElementById('canvasWrapper');
-        const statusText = document.getElementById('statusText');
-        
-        // Dom Elements
-        const targetColorInput = document.getElementById('targetColor');
+        const ctx = canvas.getContext('2d');
         const colorPicker = document.getElementById('colorPicker');
-        const hexDisplay = document.getElementById('hexDisplay');
         const ralSelector = document.getElementById('ralSelector');
-        const zoomLevelText = document.getElementById('zoomLevelText');
+        const opacitySlider = document.getElementById('opacitySlider');
+        
+        let img = new Image();
+        let texture = new Image();
+        let imagesLoaded = 0;
 
-        let originalImageData = null;
-        let scale = 1;
-        let panX = 0;
-        let panY = 0;
-        let isDragging = false;
-        let startX, startY;
+        // Les coordonnées exactes des portes fournies
+        const garage1 = [
+            {x: 326, y: 670},   // HG1
+            {x: 1090, y: 671},  // HD1
+            {x: 1088, y: 1037}, // BD1
+            {x: 327, y: 1054}   // BG1
+        ];
 
-        // Charger le menu RAL
-        for (const [name, hex] of Object.entries(ralColors)) {
-            const option = document.createElement('option');
-            option.value = hex;
-            option.textContent = name;
-            ralSelector.appendChild(option);
+        const garage2 = [
+            {x: 1224, y: 664},  // HG2
+            {x: 1888, y: 668},  // HD2
+            {x: 1895, y: 1015}, // BD2
+            {x: 1224, y: 1027}  // BG2
+        ];
+
+        // Charger les images (Renomme tes fichiers comme ceci dans ton dossier)
+        img.src = 'photo2.jpg';
+        texture.src = 'texture.jpg'; 
+
+        function checkLoad() {
+            imagesLoaded++;
+            if (imagesLoaded === 2) drawOriginal();
         }
 
-        const img = new Image();
-        img.src = 'photo.png';
-        img.onload = function() {
+        img.onload = checkLoad;
+        texture.onload = checkLoad;
+
+        function drawOriginal() {
             canvas.width = img.width;
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
-            
-            fitToScreen(); // Appel de la nouvelle fonction magique
-            
-            try {
-                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                statusText.innerHTML = "✅ Image prête ! 🖱️ Clic+Glisser = Se déplacer | ⌨️ Shift+Clic = Pipette";
-            } catch (e) {
-                console.error("CORS Error");
-                statusText.innerHTML = "❌ Erreur de sécurité. Utilise l'extension Live Server.";
-                statusText.style.color = "red";
-                statusText.style.background = "#fee2e2";
-            }
-        };
-
-        // FONCTION DE CENTRAGE INTELLIGENT
-        function fitToScreen() {
-            // Calculer le ratio pour que l'image rentre parfaitement
-            const scaleX = wrapper.clientWidth / canvas.width;
-            const scaleY = wrapper.clientHeight / canvas.height;
-            
-            // On prend le plus petit ratio pour que tout rentre, limité à 1 (pas de zoom grossissant)
-            scale = Math.min(1, scaleX, scaleY) * 0.90; // 90% pour laisser une marge jolie autour
-            
-            // On centre
-            panX = (wrapper.clientWidth - (canvas.width * scale)) / 2;
-            panY = (wrapper.clientHeight - (canvas.height * scale)) / 2;
-            
-            updateCanvasTransform();
         }
 
-        function updateCanvasTransform() {
-            canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
-            zoomLevelText.innerText = Math.round(scale * 100) + '%';
-        }
-
-        // ================= ZOOM & PAN LOGIC =================
-        wrapper.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const zoomAmount = 0.1;
-            const delta = e.deltaY > 0 ? -1 : 1;
-            
-            const rect = wrapper.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            const oldScale = scale;
-            scale = Math.max(0.05, Math.min(15, scale + (delta * zoomAmount * scale))); // Zoom plus fluide
-
-            panX = mouseX - (mouseX - panX) * (scale / oldScale);
-            panY = mouseY - (mouseY - panY) * (scale / oldScale);
-            
-            updateCanvasTransform();
-        });
-
-        document.getElementById('zoomInBtn').addEventListener('click', () => { scale = Math.min(15, scale * 1.2); updateCanvasTransform(); });
-        document.getElementById('zoomOutBtn').addEventListener('click', () => { scale = Math.max(0.05, scale / 1.2); updateCanvasTransform(); });
-        
-        // Le bouton reset utilise maintenant la fonction fitToScreen
-        document.getElementById('zoomResetBtn').addEventListener('click', fitToScreen);
-
-        wrapper.addEventListener('mousedown', (e) => {
-            if (e.shiftKey) return;
-            isDragging = true;
-            startX = e.clientX - panX;
-            startY = e.clientY - panY;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            panX = e.clientX - startX;
-            panY = e.clientY - startY;
-            updateCanvasTransform();
-        });
-
-        window.addEventListener('mouseup', () => { isDragging = false; });
-
-        document.addEventListener('keydown', (e) => { if (e.key === "Shift") wrapper.classList.add('pipette-mode'); });
-        document.addEventListener('keyup', (e) => { if (e.key === "Shift") wrapper.classList.remove('pipette-mode'); });
-
-        // ================= PIPETTE & COLOR =================
-        wrapper.addEventListener('click', function(event) {
-            if (!originalImageData || !event.shiftKey) return;
-            
-            const rect = canvas.getBoundingClientRect();
-            
-            // Calcul précis des coordonnées avec le zoom et le pan
-            // On soustrait le panX/Y et on divise par le scale
-            const x = Math.floor((event.clientX - rect.left - panX) / scale);
-            const y = Math.floor((event.clientY - rect.top - panY) / scale);
-            
-            if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
-                const pixel = ctx.getImageData(x, y, 1, 1).data;
-                const hex = "#" + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1).toUpperCase();
-                targetColorInput.value = hex;
-            }
-        });
-
-        colorPicker.addEventListener('input', function() {
-            hexDisplay.value = this.value.toUpperCase();
-            ralSelector.value = "";
-        });
-
+        // Synchronisation du menu déroulant avec la pastille de couleur
         ralSelector.addEventListener('change', function() {
-            if (this.value) {
-                colorPicker.value = this.value;
-                hexDisplay.value = this.value;
-            }
+            if (this.value) colorPicker.value = this.value;
+            applySimulation(); // Applique direct au changement
         });
+        
+        colorPicker.addEventListener('change', applySimulation);
+        opacitySlider.addEventListener('input', applySimulation);
 
-        function hexToRgb(hex) {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+        // Création du masque (clipping path) pour délimiter la zone exacte de la porte
+        function createMask(points) {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[1].x, points[1].y);
+            ctx.lineTo(points[2].x, points[2].y);
+            ctx.lineTo(points[3].x, points[3].y);
+            ctx.closePath();
         }
 
-        document.getElementById('applyColor').addEventListener('click', function() {
-            if (!originalImageData) return;
-
-            const newColor = hexToRgb(colorPicker.value);
-            const targetColorRgb = hexToRgb(targetColorInput.value);
+        function applySimulation() {
+            if (imagesLoaded < 2) return;
             
-            if (!targetColorRgb) return;
-
-            const imageData = new ImageData(
-                new Uint8ClampedArray(originalImageData.data),
-                originalImageData.width,
-                originalImageData.height
-            );
+            // 1. Redessiner la maison vierge
+            drawOriginal();
+            const color = colorPicker.value;
+            const colorOpacity = opacitySlider.value;
             
-            const data = imageData.data;
+            // 2. Fonction d'application pour une porte
+            function applyToDoor(points) {
+                ctx.save(); // Sauvegarder l'état (avant le masque)
+                
+                // Découper la zone d'action (Rien ne dépassera de ce polygone)
+                createMask(points);
+                ctx.clip();
+                
+                // Trouver la boîte englobante pour étirer la texture proprement
+                const minX = Math.min(points[0].x, points[3].x);
+                const minY = Math.min(points[0].y, points[1].y);
+                const maxX = Math.max(points[1].x, points[2].x);
+                const maxY = Math.max(points[2].y, points[3].y);
+                const width = maxX - minX;
+                const height = maxY - minY;
+                
+                // --- ÉTAPE A : Peindre la couleur de base ---
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                // --- ÉTAPE B : Appliquer la texture 2D ---
+                // Le mode 'multiply' permet à la texture de s'incruster dans la couleur comme une ombre
+                ctx.globalCompositeOperation = 'multiply';
+                ctx.drawImage(texture, minX, minY, width, height);
+                
+                // --- ÉTAPE C : Renforcer la couleur RAL ---
+                // Repasse une couche de couleur par dessus avec opacité réglable pour cacher le blanc de la texture
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = color;
+                ctx.globalAlpha = parseFloat(colorOpacity); 
+                ctx.fill();
 
-            for (let i = 0; i < data.length; i += 4) {
-                if (data[i] === targetColorRgb.r && data[i + 1] === targetColorRgb.g && data[i + 2] === targetColorRgb.b) {
-                    data[i]     = newColor.r;    
-                    data[i + 1] = newColor.g;     
-                    data[i + 2] = newColor.b;
-                }
+                ctx.restore(); // Annuler le masque pour passer à l'autre porte
             }
 
-            ctx.putImageData(imageData, 0, 0);
-        });
+            // Lancer la magie sur les deux portes
+            applyToDoor(garage1);
+            applyToDoor(garage2);
+        }
 
-        document.getElementById('resetImage').addEventListener('click', function() {
-            if (originalImageData) {
-                ctx.putImageData(originalImageData, 0, 0);
-            }
-        });
-
-        document.getElementById('downloadBtn').addEventListener('click', function() {
-            const link = document.createElement('a');
-            link.download = 'photo_modifiee.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        });
+        document.getElementById('applyBtn').addEventListener('click', applySimulation);
+        document.getElementById('resetBtn').addEventListener('click', drawOriginal);
     </script>
 </body>
 </html>
